@@ -18,7 +18,7 @@ export default function Home() {
 
     return (
         <div class="min-h-screen flex items-center justify-center bg-gray-100">
-            <div class="border-5 border-black-300 bg-white p-8 rounded-2xl shadow-2xl w-full max-w-md">
+            <div class="border-top-5 border-black-300 bg-white p-8 rounded-2xl shadow-2xl w-full max-w-md">
                 <h1 class="text-4xl font-bold text-center text-gray-800 mb-6">Web Trgovina</h1>
                 
                 {session() ? (
