@@ -4,99 +4,186 @@ import { useNavigate } from "@solidjs/router";
 
 export default function Products() {
   const [products, setProducts] = createSignal([]);
+  const [filteredProducts, setFilteredProducts] = createSignal([]);
+  const [searchQuery, setSearchQuery] = createSignal('');
   const [success, setSuccess] = createSignal(false);
+  const [cartMessage, setCartMessage] = createSignal(false);
+  const [kolicina, setKolicina] = createSignal(false);
   const navigate = useNavigate();
 
   onMount(async () => {
-      await loadProducts();
+    await loadProducts();
   });
 
   async function loadProducts() {
-      const { data, error } = await supabase
-          .from("Proizvodi")
-          .select();
-      if (error) {
-          alert("Greška pri dohvaćanju proizvoda.");
-          return;
-      }
-      setProducts(data);
+    const { data, error } = await supabase.from("Proizvodi").select();
+    if (error) {
+      alert("Greška pri dohvaćanju proizvoda.");
+      return;
+    }
+    setProducts(data);
+    setFilteredProducts(data);
+  }
+
+  function handleSearch(event) {
+    const query = event.target.value.toLowerCase();
+    setSearchQuery(query);
+
+    const filtered = products().filter((product) =>
+      product.Naziv.toLowerCase().includes(query)
+    );
+    setFilteredProducts(filtered);
   }
 
   async function formSubmit(event) {
-      setSuccess(false);
-      event.preventDefault();
-      const formData = new FormData(event.target);
-      const naziv = formData.get("naziv");
-      const opis = formData.get("opis");
-      const cijena = parseFloat(formData.get("cijena"));
+    setSuccess(false);
+    event.preventDefault();
+    const formData = new FormData(event.target);
+    const naziv = formData.get("naziv");
+    const opis = formData.get("opis");
+    const cijena = parseFloat(formData.get("cijena"));
 
-      const { error } = await supabase
-          .from("Proizvodi")
-          .insert({
-              Naziv: naziv,
-              Opis: opis,
-              Cijena: cijena
-          });
+    const { error } = await supabase.from("Proizvodi").insert({
+      Naziv: naziv,
+      Opis: opis,
+      Cijena: cijena,
+    });
 
-      if (error) {
-          alert("Spremanje proizvoda nije uspjelo.");
+    if (error) {
+      alert("Spremanje proizvoda nije uspjelo.");
+    } else {
+      setSuccess(true);
+      event.target.reset();
+      await loadProducts();
+    }
+  }
+
+  async function addToCart(product) {
+    const { data, error: fetchError } = await supabase
+      .from("Košarica")
+      .select("id, količina")
+      .eq("proizvod_id", product.id);
+
+  
+
+    if (data.length > 0) {
+      const existingProduct = data[0];
+
+      const { error: updateError } = await supabase
+        .from("Košarica")
+        .update({
+          količina: existingProduct.količina + 1,
+        })
+        .eq("id", existingProduct.id);
+
+      if (updateError) {
+        alert("Greška pri ažuriranju košarice.");
       } else {
-          setSuccess(true);
-          event.target.reset();
-          await loadProducts();
+        setKolicina("Količina proizvoda je povećana.");
       }
+      
+    } else {
+      const { error: insertError } = await supabase
+        .from("Košarica")
+        .insert({
+          proizvod_id: product.id,
+          naziv: product.Naziv,
+          cijena: product.Cijena,
+          količina: 1,
+        });
+
+      if (insertError) {
+        alert("Dodavanje proizvoda u košaricu nije uspjelo.");
+    } else {
+        setCartMessage("Proizvod je dodan u košaricu."); 
+      }
+    
+    }
   }
 
   return (
     <div class="p-5">
-        
-        <div class=" bg-white p-5 shadow-2xl ">
-            <button
-              onClick={() => navigate("/home")}
-              class="bg-blue-500 text-white p-3 rounded-xl hover:bg-blue-600 transition duration-300"
-            >
-                Povratak na naslovnicu
-            </button>
+      <div class="bg-white p-5 shadow-2xl rounded-2xl">
+        <button
+          onClick={() => navigate("/home")}
+          class="font-bold bg-linear-65 from-purple-500 to-pink-500 text-white p-3 rounded-xl hover:bg-linear-70 transition duration-300 ease-in-out hover:-translate-y-1 hover:scale-110 hover:bg-indigo-500"
+        >
+          Povratak na naslovnicu
+        </button>
+      </div>
+
+      <h1 class="text-center text-4xl font-bold mb-4">Proizvodi</h1>
+
+      <Show when={success()}>
+        <div class="bg-green-400 text-white p-3 rounded mb-4">
+          Proizvod uspješno dodan!
+        </div>
+      </Show>
+
+
+      <Show when={cartMessage()}>
+        <div class="bg-yellow-500 text-white p-3 rounded mb-4">
+          {cartMessage()}
+        </div>
+      </Show>
+
+      <Show when={kolicina()}>
+        <div class="bg-yellow-500 text-white p-3 rounded mb-4">
+          {kolicina()}
+        </div>
+      </Show>
+
+
+      <form onSubmit={formSubmit} class="mb-6 bg-gray-100 p-4 rounded shadow">
+        <div class="p-2 flex flex-col gap-1">
+          <label>Naziv:</label>
+          <input type="text" name="naziv" required class="border p-2 rounded" />
         </div>
 
-        <h1 class="text-4xl font-bold mb-4">Proizvodi</h1>
+        <div class="p-2 flex flex-col gap-1">
+          <label>Opis:</label>
+          <textarea name="opis" class="border p-2 rounded"></textarea>
+        </div>
 
-        <Show when={success()}>
-            <div class="bg-green-400 text-white p-2 rounded mb-4">
-                Proizvod uspješno dodan!
-            </div>
-        </Show>
+        <div class="p-2 flex flex-col gap-1">
+          <label>Cijena:</label>
+          <input type="number" step="0.01" name="cijena" required class="border p-2 rounded" />
+        </div>
 
-        <form onSubmit={formSubmit} class="mb-6 bg-gray-100 p-4 rounded shadow">
-            <div class="p-2 flex flex-col gap-1">
-                <label>Naziv:</label>
-                <input type="text" name="naziv" required class="border p-2 rounded" />
-            </div>
+        <div class="p-2 flex flex-col gap-1">
+          <input
+            type="submit"
+            value="Dodaj Proizvod"
+            class="bg-blue-500 text-white p-2 rounded cursor-pointer"
+          />
+        </div>
+      </form>
 
-            <div class="p-2 flex flex-col gap-1">
-                <label>Opis:</label>
-                <textarea name="opis" class="border p-2 rounded"></textarea>
-            </div>
 
-            <div class="p-2 flex flex-col gap-1">
-                <label>Cijena:</label>
-                <input type="number" step="0.01" name="cijena" required class="border p-2 rounded" />
-            </div>
-
-            <div class="p-2 flex flex-col gap-1">
-                <input type="submit" value="Dodaj Proizvod" class="bg-blue-500 text-white p-2 rounded cursor-pointer" />
-            </div>
-        </form>
-
-        <For each={products()} fallback={<div>Nema dostupnih proizvoda.</div>}>
-            {(product) => (
-                <div class="flex flex-col bg-gray-100 p-4 rounded mb-4 shadow">
-                    <div class="text-xl font-semibold">{product.Naziv}</div>
-                    <div class="text-gray-600">{product.Opis}</div>
-                    <div class="text-lg text-gray-700 mt-2">Cijena: {product.Cijena} €</div>
-                </div>
-            )}
-        </For>
+      <div class="mb-4 flex flex-col gap-2">
+        <input
+          type="text"
+          placeholder="Pretraži proizvode..."
+          value={searchQuery()}
+          onInput={handleSearch}
+          class="border p-2 rounded"
+        />
+      </div>
+      
+      <For each={filteredProducts()} fallback={<div>Nema dostupnih proizvoda.</div>}>
+        {(product) => (
+          <div class="flex flex-col bg-gray-100 p-4 rounded mb-4 shadow">
+            <div class="text-xl font-semibold">{product.Naziv}</div>
+            <div class="text-gray-600">{product.Opis}</div>
+            <div class="text-lg text-gray-700 mt-2">Cijena: {product.Cijena} €</div>
+            <button
+              onClick={() => addToCart(product)}
+              class="mt-2 bg-yellow-500 text-white p-2 rounded hover:bg-yellow-600 transition duration-300" >
+              Dodaj u košaricu
+            </button>
+          </div>
+        )}
+      </For>
     </div>
   );
 }

@@ -3,8 +3,9 @@ import { AuthProvider } from "./AuthProvider";
 
 import SignIn from "./SignIn";
 import Home from "./Home";
-import Proizvodi from "./Proizvodi"; 
 import Register from "./Register";
+import Proizvodi from "./Proizvodi"; 
+import Košarica from "./Košarica";
 
 function App() {
 
@@ -14,8 +15,8 @@ function App() {
       <Route path="/" component={Register} />
       <Route path="/Home" component={Home} />    
         <Route path="/SignIn" component={SignIn} />
-        <Route path="/proizvodi" component={Proizvodi} /> 
-        
+        <Route path="/Proizvodi" component={Proizvodi} /> 
+        <Route path="/Košarica" component={Košarica} /> 
       </Router>
     </AuthProvider>
 

@@ -36,8 +36,6 @@ export default function Register() {
             <div class="p-8 bg-gray-500 rounded-2xl shadow-lg max-w-sm w-full">
                 <h2 class="text-3xl font-semibold text-center text-white mb-6">Registracija</h2>
 
-               
-               
 
                     <input
                         type="email"

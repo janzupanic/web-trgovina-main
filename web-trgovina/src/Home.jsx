@@ -17,7 +17,7 @@ export default function Home() {
     };
 
     return (
-        <div class="min-h-screen flex items-center justify-center bg-gray-100">
+        <div class="min-h-screen flex items-center justify-center bg-linear-65 from-purple-500 to-pink-500 ">
             <div class="border-top-5 border-black-300 bg-white p-8 rounded-2xl shadow-2xl w-full max-w-md">
                 <h1 class="text-4xl font-bold text-center text-gray-800 mb-6">Web Trgovina</h1>
                 
@@ -30,14 +30,10 @@ export default function Home() {
                             <a href="/proizvodi">
                                 <button
                                   onClick={() => navigate("/proizvodi")} class="bg-blue-500 text-white p-3 rounded-xl w-full hover:bg-blue-600 transition duration-300">
-                                    Pregledaj Proizvode
+                                   Proizvodi
                                 </button>
                             </a>
-                            <a href="/narudžbe">
-                                <button class="bg-purple-500 text-white p-3 rounded-xl w-full hover:bg-purple-600 transition duration-300">
-                                    Moje Narudžbe
-                                </button>
-                            </a>
+                          
                             <a href="/košarica">
                                 <button class="bg-yellow-500 text-white p-3 rounded-xl w-full hover:bg-yellow-600 transition duration-300">
                                     Košarica
@@ -55,7 +51,7 @@ export default function Home() {
                     </div>
                 ) : (
                     <div class="text-center">
-                    <p class="text-gray-500 mb-4">Niste prijavljeni! Prijavite se za pristup.</p>
+                    <p class="text-gray-500 mb-4">Prijavite se za pristup trgovini.</p>
                     <button
                         onClick={redirectToHome}
                         class="bg-green-500 text-white p-2 rounded-xl w-full hover:bg-green-700 transition duration-300">
