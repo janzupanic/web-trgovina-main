@@ -147,7 +147,7 @@ export default function Products() {
 
         <div class="p-2 flex flex-col gap-1">
           <label>Cijena:</label>
-          <input type="number" step="0.01" name="cijena" required class="border p-2 rounded" />
+          <input type="number" min="0" step="0.01" name="cijena" required class="border p-2 rounded" />
         </div>
 
         <div class="p-2 flex flex-col gap-1">
