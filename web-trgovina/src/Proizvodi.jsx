@@ -9,10 +9,14 @@ export default function Products() {
   const [success, setSuccess] = createSignal(false);
   const [cartMessage, setCartMessage] = createSignal(false);
   const [kolicina, setKolicina] = createSignal(false);
+  const [prosjekOcjena, setProsjekOcjena] = createSignal({});
+  const [ocjena, setOcjena] = createSignal(0);
+  const [loading, setLoading] = createSignal(false);
   const navigate = useNavigate();
 
   onMount(async () => {
     await loadProducts();
+    await loadSveProsjeke(); 
   });
 
   async function loadProducts() {
@@ -33,6 +37,54 @@ export default function Products() {
       product.Naziv.toLowerCase().includes(query)
     );
     setFilteredProducts(filtered);
+  }
+
+  async function loadSveProsjeke() {
+    for (const product of products()) {
+      await loadProsjekOcjena(product.id);
+    }
+  }
+
+  async function loadProsjekOcjena(proizvodId) {
+    const { data, error } = await supabase
+      .from("Recenzije")
+      .select("ocjena")
+      .eq("proizvod_id", proizvodId);
+
+    if (!error && data.length > 0) {
+      const ukupanZbroj = data.reduce((sum, recenzija) => sum + recenzija.ocjena, 0);
+      const prosjek = ukupanZbroj / data.length;
+      setProsjekOcjena((prev) => ({ ...prev, [proizvodId]: prosjek.toFixed(1) }));
+    } else {
+      setProsjekOcjena((prev) => ({ ...prev, [proizvodId]: null }));
+    }
+  }
+
+  async function dodajOcjenu(proizvodId) {
+    setLoading(true);
+
+    if (parseInt(ocjena()) < 1 || parseInt(ocjena()) > 5) {
+      alert("Ocjena mora biti između 1 i 5.");
+      setLoading(false);
+      return;
+    }
+
+    const { error } = await supabase
+    .from("Recenzije")
+    .insert({
+      proizvod_id: proizvodId,
+      ocjena: parseInt(ocjena()),
+      created_at: new Date().toISOString(),
+    });
+
+    if (!error) {
+      setOcjena(0); 
+      await loadProsjekOcjena(proizvodId); 
+    } else {
+      alert("Greška pri dodavanju ocjene.");
+    }
+
+    setLoading(false);
   }
 
   async function formSubmit(event) {
@@ -176,9 +228,34 @@ export default function Products() {
             <div class="text-xl font-semibold">{product.Naziv}</div>
             <div class="text-gray-600">{product.Opis}</div>
             <div class="text-lg text-gray-700 mt-2">Cijena: {product.Cijena} €</div>
+            
+           
+            <h3>Prosječna ocjena:</h3>
+            <p>{prosjekOcjena()[product.id] ? `${prosjekOcjena()[product.id]}/5` : "Još nema ocjena."}</p>
+
+            
+            <h4>Dodajte svoju ocjenu</h4>
+            <input
+              type="number"
+              min="1"
+              max="5"
+              value={ocjena()}
+              onInput={(e) => setOcjena(e.target.value)}
+              class="border p-2 rounded w-full"
+            />
+            <button
+              onClick={() => dodajOcjenu(product.id)}
+              disabled={loading()}
+              class="mt-2 bg-blue-500 text-white p-2 rounded hover:bg-blue-600 transition duration-300 w-full"
+            >
+              {loading() ? "Spremanje..." : "Dodaj ocjenu"}
+            </button>
+
+            
             <button
               onClick={() => addToCart(product)}
-              class="mt-2 bg-yellow-500 text-white p-2 rounded hover:bg-yellow-600 transition duration-300" >
+              class="mt-2 bg-yellow-500 text-white p-2 rounded hover:bg-yellow-600 transition duration-300"
+            >
               Dodaj u košaricu
             </button>
           </div>
