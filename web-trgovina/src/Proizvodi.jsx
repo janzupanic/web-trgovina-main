@@ -10,15 +10,18 @@ export default function Products() {
   const [cartMessage, setCartMessage] = createSignal(false);
   const [kolicina, setKolicina] = createSignal(false);
   const [prosjekOcjena, setProsjekOcjena] = createSignal({});
-  const [ocjena, setOcjena] = createSignal(0);
+  const [ocjena, setOcjena] = createSignal({});
   const [loading, setLoading] = createSignal(false);
   const navigate = useNavigate();
 
   onMount(async () => {
+    setLoading(true);
     await loadProducts();
+    setLoading(false);
     await loadSveProsjeke(); 
   });
 
+  // DOHVAĆANJE PROIZVODA IZ TABLICE PROIZVODI
   async function loadProducts() {
     const { data, error } = await supabase.from("Proizvodi").select();
     if (error) {
@@ -29,6 +32,7 @@ export default function Products() {
     setFilteredProducts(data);
   }
 
+  // PRETRAGA PROIZVODA
   function handleSearch(event) {
     const query = event.target.value.toLowerCase();
     setSearchQuery(query);
@@ -60,26 +64,27 @@ export default function Products() {
     }
   }
 
+  // DODAVANJE OCJENA NA PROIZVODIMA
   async function dodajOcjenu(proizvodId) {
     setLoading(true);
+   
 
-    if (parseInt(ocjena()) < 1 || parseInt(ocjena()) > 5) {
+    if (parseInt(ocjena()[proizvodId]) < 1 || parseInt(ocjena()[proizvodId]) > 5) {
       alert("Ocjena mora biti između 1 i 5.");
       setLoading(false);
       return;
     }
 
     const { error } = await supabase
-    .from("Recenzije")
-    .insert({
-      proizvod_id: proizvodId,
-      ocjena: parseInt(ocjena()),
-      created_at: new Date().toISOString(),
-    });
+      .from("Recenzije")
+      .insert({
+        proizvod_id: proizvodId,
+        ocjena: parseInt(ocjena()[proizvodId]),
+      });
 
     if (!error) {
-      setOcjena(0); 
-      await loadProsjekOcjena(proizvodId); 
+      setOcjena((prev) => ({ ...prev, [proizvodId]: 0 })); 
+      await loadProsjekOcjena(proizvodId);
     } else {
       alert("Greška pri dodavanju ocjene.");
     }
@@ -110,14 +115,14 @@ export default function Products() {
     }
   }
 
+  // DODAVANJE PROIZVODA U KOŠARICU
   async function addToCart(product) {
     const { data, error: fetchError } = await supabase
       .from("Košarica")
       .select("id, količina")
       .eq("proizvod_id", product.id);
 
-  
-
+    // DODAVANJE KOLIČINE U KOŠARICI AKO VEĆ POSTOJI ISTI PROIZVOD
     if (data.length > 0) {
       const existingProduct = data[0];
 
@@ -133,7 +138,7 @@ export default function Products() {
       } else {
         setKolicina("Količina proizvoda je povećana.");
       }
-      
+
     } else {
       const { error: insertError } = await supabase
         .from("Košarica")
@@ -146,10 +151,9 @@ export default function Products() {
 
       if (insertError) {
         alert("Dodavanje proizvoda u košaricu nije uspjelo.");
-    } else {
-        setCartMessage("Proizvod je dodan u košaricu."); 
+      } else {
+        setCartMessage("Proizvod je dodan u košaricu.");
       }
-    
     }
   }
 
@@ -172,7 +176,6 @@ export default function Products() {
         </div>
       </Show>
 
-
       <Show when={cartMessage()}>
         <div class="bg-yellow-500 text-white p-3 rounded mb-4">
           {cartMessage()}
@@ -184,7 +187,6 @@ export default function Products() {
           {kolicina()}
         </div>
       </Show>
-
 
       <form onSubmit={formSubmit} class="mb-6 bg-gray-100 p-4 rounded shadow">
         <div class="p-2 flex flex-col gap-1">
@@ -211,7 +213,6 @@ export default function Products() {
         </div>
       </form>
 
-
       <div class="mb-4 flex flex-col gap-2">
         <input
           type="text"
@@ -221,27 +222,29 @@ export default function Products() {
           class="border p-2 rounded"
         />
       </div>
-      
+
+      <Show when={loading()}>
+        <div>Učitavanje proizvoda...</div>
+      </Show>
+
       <For each={filteredProducts()} fallback={<div>Nema dostupnih proizvoda.</div>}>
         {(product) => (
           <div class="flex flex-col bg-gray-100 p-4 rounded mb-4 shadow">
             <div class="text-xl font-semibold">{product.Naziv}</div>
             <div class="text-gray-600">{product.Opis}</div>
             <div class="text-lg text-gray-700 mt-2">Cijena: {product.Cijena} €</div>
-            
-           
+
             <h3>Prosječna ocjena:</h3>
             <p>{prosjekOcjena()[product.id] ? `${prosjekOcjena()[product.id]}/5` : "Još nema ocjena."}</p>
 
-            
-            <h4>Dodajte svoju ocjenu</h4>
+            <h4>Ocijenite proizvod:</h4>
             <input
               type="number"
               min="1"
               max="5"
-              value={ocjena()}
-              onInput={(e) => setOcjena(e.target.value)}
-              class="border p-2 rounded w-full"
+              value={ocjena()[product.id] || ''}
+              onInput={(e) => setOcjena((prev) => ({ ...prev, [product.id]: e.target.value }))}
+              class="border p-2 rounded w-16"
             />
             <button
               onClick={() => dodajOcjenu(product.id)}
@@ -251,7 +254,6 @@ export default function Products() {
               {loading() ? "Spremanje..." : "Dodaj ocjenu"}
             </button>
 
-            
             <button
               onClick={() => addToCart(product)}
               class="mt-2 bg-yellow-500 text-white p-2 rounded hover:bg-yellow-600 transition duration-300"
