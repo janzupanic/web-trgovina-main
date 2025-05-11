@@ -1,5 +1,5 @@
 import { createSignal, onMount, For, Show } from "solid-js";
-import { supabase } from "./supabase";
+import { supabase } from "./pocketbase";
 import { useNavigate } from "@solidjs/router";
 
 export default function Products() {

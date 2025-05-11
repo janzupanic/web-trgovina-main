@@ -1,36 +1,26 @@
-import { createContext, createSignal, useContext } from "solid-js";
-import { supabase } from "./supabase";
+import { createContext, createSignal, useContext, onCleanup } from "solid-js";
+import { pb } from "./pocketbase";
 
 const AuthContext = createContext();
 
 export function useAuth() {
-    return useContext(AuthContext);
+  return useContext(AuthContext);
 }
 
 export function AuthProvider(props) {
-    const [session, setSession] = createSignal(null);
-    const [loading, setLoading] = createSignal(true);
-    
-    supabase.auth.onAuthStateChange((event, session) => {
-        
+  const [user, setUser] = createSignal(pb.authStore.model);
+  const [loading, setLoading] = createSignal(true);
 
-        if (event === "SIGNED_IN" || event === "USER_UPDATED") {
-            setSession(session);
-            setLoading(false);
-        } else if (event === "SIGNED_OUT") {
-            setSession(null);
-            setLoading(false);
-        } else if (event === "INITIAL_SESSION") {
-            setLoading(false);
-    
-    }
-    });
+  const unsubscribe = pb.authStore.onChange(() => {
+    setUser(pb.authStore.model);
+    setLoading(false);
+  });
 
-return (
+  onCleanup(() => unsubscribe());
 
-    <Show when={!loading()}>
-    <AuthContext.Provider value={session}>{props.children}</AuthContext.Provider>
-    </Show>
-
-);
+  return (
+    <AuthContext.Provider value={{ user, loading }}>
+      {props.children}
+    </AuthContext.Provider>
+  );
 }

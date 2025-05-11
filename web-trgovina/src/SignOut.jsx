@@ -1,25 +1,21 @@
-import { createSignal, onMount, Show } from "solid-js";
-import { supabase } from "./supabase";
+import { createSignal, onMount } from "solid-js";
+import { pb } from "./pocketbase";
 
 export default function SignOut() {
-    const [result, setResult] = createSignal(null);
+  const [result, setResult] = createSignal(null);
 
-    onMount(async () => {
-        const result = supabase.auth.signOut();
-        if (result.error) {
-            setResult("Odjava nije uspjela!");
-        } else {
-            setResult("Odjava je uspjela.");
-        }
-    });
+  onMount(async () => {
+    try {
+      pb.authStore.clear();
+      setResult("Odjava je uspjela.");
+    } catch {
+      setResult("Odjava nije uspjela!");
+    }
+  });
 
-    return (
-        <>
-            <Show when={result()}>
-                <div class="bg-slate-300 p-4 rounded">
-                    {result()}
-                </div>
-            </Show>
-        </>
-    );
+  return (
+    <>
+      {result()}
+    </>
+  );
 }
